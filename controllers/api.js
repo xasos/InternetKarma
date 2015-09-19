@@ -22,6 +22,9 @@ var Y = require('yui/yql');
 var _ = require('lodash');
 var Bitcore = require('bitcore');
 var BitcoreInsight = require('bitcore-explorers').Insight;
+var Promise = require('bluebird');
+var await = require('asyncawait/await');
+var async2 = require('asyncawait/async');
 Bitcore.Networks.defaultNetwork = secrets.bitcore.bitcoinNetwork == 'testnet' ? Bitcore.Networks.testnet : Bitcore.Networks.mainnet;
 
 /**
@@ -90,6 +93,137 @@ exports.getTumblr = function(req, res, next) {
   });
 };
 
+
+// promise_fn = function(url)
+// {
+//   return new Promise(function(resolve, reject){
+//     console.log('entered promise');
+//     resolve(dankFunction(url));
+//   });
+// }
+
+// dankFunction = function(url, callback)
+// {
+//   // return callback(dankFunctionHelper(url, 0));
+//   console.log('called dank');
+//   graph.get(url, function(err, posts){
+//     if (posts.paging)
+//     {
+//       if (posts.paging.next)
+//       {
+//         console.log('\tcalled again');
+//         return (dankFunction(posts.paging.next) + countLikes(posts));
+//       }
+//       else
+//       {
+//         console.log("base hit");
+//         return countLikes(posts);
+//       }
+//     }
+//     else
+//     {
+//       console.log("base 2 hit");
+//       // console.log(countLikes(posts));
+//       return countLikes(posts);
+//     }
+//   });
+// };
+
+// // dankFunctionHelper = function(url, curr)
+// // {
+
+// // };
+
+// countLikes = function(posts)
+// {
+//   if (posts.data.length == 0)
+//   {
+//     return 0;
+//   }
+//   else
+//   {
+//     console.log('\n\ncalled count likes');
+//     console.log('\n'+JSON.stringify(posts)+'\n');
+//     var count = 0;
+//     async.parallel(
+//       posts.data.map(function(post){
+//         return function(done2){
+//           graph.get(post.id + '/likes?summary=true', function(err, likes){
+//             // console.log(JSON.stringify(likes));
+//             if (likes.summary)
+//             {
+//               // console.log(likes.summary.total_count);
+//               count += likes.summary.total_count;
+//             }
+//             done2();
+//           });
+//         }}),
+//       function(){
+//         // console.log(count);
+//         return count;
+//       }
+//     );
+//   }
+// }
+
+countLikes = function(posts, callback)
+{
+  // console.log('actually called countLikes');
+  if (!posts)
+  {
+    // console.log('no posts');
+    return 0;
+  }
+  // console.log('\n\ncalled count likes');
+  // console.log('\n'+JSON.stringify(posts)+'\n');
+  var count = 0;
+  async.parallel(
+    posts.data.map(function(post){
+      return function(done2){
+        graph.get(post.id + '/likes?summary=true', function(err, likes){
+          // console.log(JSON.stringify(likes));
+          if (likes.summary)
+          {
+            // console.log(likes.summary.total_count);
+            count += likes.summary.total_count;
+          }
+          done2();
+        });
+      }}),
+    function(){
+      // console.log(count);
+      callback(count);
+    }
+  );
+}
+
+function getLikeCount(url, callback) {
+  // console.log("initial getLikeCount");
+  getLikeCountImpl(url, callback, 0);
+}
+
+function getLikeCountImpl(url, userCallback, currentLikeCount) {
+  console.log('called impl; likes: ' + currentLikeCount);
+  graph.get(url, function(err, posts) 
+  {
+    // console.log('called graph.get');
+    // console.log(JSON.stringify(posts));
+    countLikes(posts, function(likeCount) {
+      // console.log('called count likes');
+      if (posts.paging == null) 
+      {
+        // console.log('no more pages');
+        userCallback(currentLikeCount + likeCount);
+      } 
+      else 
+      {
+        // console.log('more pages');
+        getLikeCountImpl(posts.paging.next, userCallback, currentLikeCount + likeCount);
+      }
+    });
+  });
+}
+
 /**
  * GET /api/facebook
  * Facebook API example.
@@ -101,37 +235,70 @@ exports.getFacebook = function(req, res, next) {
   async.parallel({
     getMe: function(done) {
       graph.get(req.user.facebook, function(err, me) {
-        console.log("ME: " + JSON.stringify(me));
+        // console.log("ME: " + JSON.stringify(me));
         done(err, me); 
       });
     },
     getMyFriends: function(done) {
       graph.get(req.user.facebook + '/friends', function(err, friends) {
-        console.log("FRIENDS: " + JSON.stringify(friends));
+        // console.log("FRIENDS: " + JSON.stringify(friends));
         done(err, friends.data);
       });
     },
     getPosts: function(done) {
-      graph.get('me/posts', function(err, posts){
-        var count = 0;
-        async.parallel(
-          posts.data.map(function(post){
-            return function(done2){
-              graph.get(post.id + '/likes?summary=true', function(err, likes){
-                console.log(JSON.stringify(likes));
-                console.log(likes.summary.total_count);
-                count += likes.summary.total_count;
-                done2();
-              });
-            }}),
-          function(){
-            done(err, count);
-          }
-        );
+      // console.log('getting posts');
 
-       
-        
+      getLikeCount('me/posts', function(likeCount) {
+        // console.log("COUNT: " + likeCount);
+        done(null, likeCount);
       });
+
+
+      // var count_likes = async2 (function (url){
+      //   console.log('inside count_likes');
+      //   var total = await (dankFunction(url, countLikes));
+      //   console.log("TOTAL: " + total);
+      //   done(total);
+      // });
+      // count_likes('me/posts');
+      // var total = 0;
+      // promise_fn('me/posts').then(function(total){
+      //   console.log("TOTAL: " + total);
+      //   done(total);
+      // });
+
+      // async.waterfall([
+      //   function(){
+      //     total = promise_fn('me/posts').then(function());
+      //     console.log(total);
+      //   }, function(){
+      //     console.log("\tMASTER CALLBACK");
+      //     done(total);
+      //   }]);
+
+
+
+      // graph.get('me/posts', function(err, posts){
+      //   var count = 0;
+      //   // posts.paging.next
+
+      //   async.parallel(
+      //     posts.data.map(function(post){
+      //       return function(done2){
+      //         graph.get(post.id + '/likes?summary=true', function(err, likes){
+      //           console.log(JSON.stringify(likes));
+      //           console.log(likes.summary.total_count);
+      //           count += likes.summary.total_count;
+      //           done2();
+      //         });
+      //       }}),
+      //     function(){
+      //       done(err, count);
+      //     }
+      //   );  
+      // });
+
+
     },
     // getLikes: function(done){
     //   var count = 0;
@@ -143,7 +310,7 @@ exports.getFacebook = function(req, res, next) {
     // },
     getPhotos: function(done){
       graph.get(req.user.facebook + '/photos', function(err, photos){
-        console.log("PHOTOS: " + JSON.stringify(photos));
+        // console.log("PHOTOS: " + JSON.stringify(photos));
         done(err, photos);
       });
     }
