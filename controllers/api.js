@@ -100,17 +100,33 @@ exports.getFacebook = function(req, res, next) {
   async.parallel({
     getMe: function(done) {
       graph.get(req.user.facebook, function(err, me) {
-        done(err, me);
+        console.log("ME: " + JSON.stringify(me));
+        done(err, me); 
       });
     },
     getMyFriends: function(done) {
       graph.get(req.user.facebook + '/friends', function(err, friends) {
+        console.log("FRIENDS: " + JSON.stringify(friends));
         done(err, friends.data);
+      });
+    },
+    getFeed: function(done) {
+      graph.get('me/posts', function(err, feed){
+        console.log(req.user.facebook);
+        console.log("FEED: " + JSON.stringify(feed));
+        console.log("ERR " + err);
+        done(err, feed);
+      });
+    },
+    getPhotos: function(done){
+      graph.get(req.user.facebook + '/photos', function(err, photos){
+        console.log("PHOTOS: " + JSON.stringify(photos));
+        done(err, photos);
       });
     }
   },
   function(err, results) {
-    if (err) return next(err);
+    if (err) return next(err); 
     res.render('api/facebook', {
       title: 'Facebook API',
       me: results.getMe,
