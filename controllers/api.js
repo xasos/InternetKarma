@@ -97,24 +97,62 @@ exports.getTumblr = function(req, res, next) {
 exports.getFacebook = function(req, res, next) {
   var token = _.find(req.user.tokens, { kind: 'facebook' });
   graph.setAccessToken(token.accessToken);
+  var likes = 0;
   async.parallel({
     getMe: function(done) {
       graph.get(req.user.facebook, function(err, me) {
-        done(err, me);
+        console.log("ME: " + JSON.stringify(me));
+        done(err, me); 
       });
     },
     getMyFriends: function(done) {
       graph.get(req.user.facebook + '/friends', function(err, friends) {
+        console.log("FRIENDS: " + JSON.stringify(friends));
         done(err, friends.data);
+      });
+    },
+    getPosts: function(done) {
+      graph.get('me/posts', function(err, posts){
+        var count = 0;
+        async.parallel(
+          posts.data.map(function(post){
+            return function(done2){
+              graph.get(post.id + '/likes?summary=true', function(err, likes){
+                console.log(JSON.stringify(likes));
+                console.log(likes.summary.total_count);
+                count += likes.summary.total_count;
+                done2();
+              });
+            }}),
+          function(){
+            done(err, count);
+          }
+        );
+
+       
+        
+      });
+    },
+    // getLikes: function(done){
+    //   var count = 0;
+    //   for posts.data.forEach(function(post){
+    //     graph.get(post.id + '/likes?summary=true', function(err, likes){
+    //       console.log(JSON.stringify(likes));
+    //     });
+    //   });
+    // },
+    getPhotos: function(done){
+      graph.get(req.user.facebook + '/photos', function(err, photos){
+        console.log("PHOTOS: " + JSON.stringify(photos));
+        done(err, photos);
       });
     }
   },
   function(err, results) {
-    if (err) return next(err);
-    res.render('api/facebook', {
-      title: 'Facebook API',
-      me: results.getMe,
-      friends: results.getMyFriends
+    if (err) return next(err); 
+    res.render('main', {
+      title: 'find your place',
+      posts: results.getPosts
     });
   });
 };
