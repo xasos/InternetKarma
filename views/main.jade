@@ -1,0 +1,31 @@
+extends layout
+
+block content
+  h1 #{title}
+  p.lead find your place on the web
+  hr
+  .row
+    .col-sm-6.col-sm-offset-3
+      h1 simple.
+      p authenticate with your favorite accounts to find yourself on the web.
+  .row
+    .col-sm-6
+      h2 facebook
+      p #{posts}
+      p
+        a.btn.btn-default(href='#', role='button') View details »
+    .col-sm-6
+      h2 twitter
+      p
+      p
+        a.btn.btn-default(href='#', role='button') View details »
+    .col-sm-6
+      h2 reddit
+      p 
+      p
+        a.btn.btn-default(href='#', role='button') View details »
+    .col-sm-6
+      h2 Heading
+      p 
+      p
+        a.btn.btn-default(href='#', role='button') View details »
