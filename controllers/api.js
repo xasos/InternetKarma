@@ -37,6 +37,10 @@ exports.getApi = function(req, res) {
   });
 };
 
+exports.fakeFollowers = function(req, res) {
+  res.json({followers: "451"});
+};
+
 /**
  * GET /api/foursquare
  * Foursquare API example.
@@ -475,11 +479,12 @@ exports.getTwitter = function(req, res, next) {
     access_token: token.accessToken,
     access_token_secret: token.tokenSecret
   });
-  T.get('search/tweets', { q: 'nodejs since:2013-01-01', geocode: '40.71448,-74.00598,5mi', count: 10 }, function(err, reply) {
+  T.get('statuses/user_timeline', { user_id: req.user.twitter, trim_user: true }, function(err, reply) {
     if (err) return next(err);
+    console.log(reply);
     res.render('api/twitter', {
       title: 'Twitter API',
-      tweets: reply.statuses
+      tweets: 4
     });
   });
 };
@@ -502,9 +507,14 @@ exports.postTwitter = function(req, res, next) {
     access_token: token.accessToken,
     access_token_secret: token.tokenSecret
   });
-  T.post('statuses/update', { status: req.body.tweet }, function(err, data, response) {
+  // T.post('statuses/update', { status: req.body.tweet }, function(err, data, response) {
+  //   if (err) return next(err);
+  //   req.flash('success', { msg: 'Tweet has been posted.'});
+  //   res.redirect('/api/twitter');
+  // });
+  T.get('statuses/user_timeline', function(err, data, response) {
     if (err) return next(err);
-    req.flash('success', { msg: 'Tweet has been posted.'});
+    console.log(response)
     res.redirect('/api/twitter');
   });
 };
