@@ -104,6 +104,13 @@ block content
         if user.facebook
           a.btn.btn-block.btn-primary#calculate
             p CALCULATE!
+    br
+    br
+    .row
+      .col-sm-4.col-sm-offset-4.text-center
+        if user
+          a.btn.btn-medium.btn-success(href="/getHistory/#{user.email}")
+            p Graphs!
     .row
       .col-sm-12.text-center
         h1#previous_values
