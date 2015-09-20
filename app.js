@@ -165,12 +165,12 @@ countLikes = function(posts, callback)
   );
 }
 
-function getLikeCount(url, callback, req) {
+function getLikeCount(url, callback, req, agg_arr) {
   // console.log("initial getLikeCount");
-  getLikeCountImpl(url, callback, 0, req);
+  getLikeCountImpl(url, callback, 0, req, agg_arr);
 }
 
-function getLikeCountImpl(url, userCallback, currentLikeCount, req) {
+function getLikeCountImpl(url, userCallback, currentLikeCount, req, agg_arr) {
   console.log('fb: ' + currentLikeCount);
   // app.io.in(req.user.facebook).emit(currentLikeCount);
   // app.sendMessage(req, currentLikeCount);
@@ -180,15 +180,21 @@ function getLikeCountImpl(url, userCallback, currentLikeCount, req) {
     // console.log(JSON.stringify(posts));
     countLikes(posts, function(likeCount) {
       // console.log('called count likes');
+
+      // console.log(agg_arr);
       if (posts.paging == null) 
       {
         // console.log('no more pages');
-        userCallback(null, currentLikeCount + likeCount);
+        userCallback(null, agg_arr);
       } 
       else 
       {
+        var num_posts = posts.data.length;
+        // console.log('\nPOSTS DATA: \n' + JSON.stringify(posts.data));
+        var created_time = posts.data[num_posts-1].created_time;
+        agg_arr.push({time: created_time, likes: (currentLikeCount+likeCount)});
         // console.log('more pages');
-        getLikeCountImpl(posts.paging.next, userCallback, currentLikeCount + likeCount);
+        getLikeCountImpl(posts.paging.next, userCallback, currentLikeCount + likeCount, req, agg_arr);
       }
     });
   });
@@ -204,19 +210,24 @@ function getStarCount(req, callback)
     access_token_secret: token.tokenSecret
   });
 
+  var agg_arr = [];
+
   T.get('statuses/user_timeline', { user_id: req.user.twitter, trim_user: true, count: 200, include_rts: false }, function(err, reply) {
     if (err) throw err;
     var count = 0;
     var max_uid = '';
+    var last_time = '';
     for (var i = 0; i < reply.length; i++) {
       count += (reply[i].favorite_count);
       max_uid = reply[i].id;
+      last_time = reply[i].created_at;
     }
-    getStarCount_help(req, callback, count, reply[reply.length-1].id, reply, T);
+    agg_arr.push({time:last_time, stars:count});
+    getStarCount_help(req, callback, count, reply[reply.length-1].id, reply, T, agg_arr);
   });
 }
 
-function getStarCount_help(req, callback, currCount, max_uid, reply, twit)
+function getStarCount_help(req, callback, currCount, max_uid, reply, twit, agg_arr)
 {
   if (reply.length != 0)
   {
@@ -225,26 +236,30 @@ function getStarCount_help(req, callback, currCount, max_uid, reply, twit)
         if (err) throw err;
         var max_uid = '';
         var count = 0;
+        var last_time = '';
         for (var i = 0; i < reply.length; i++) {
           count += (reply[i].favorite_count);
           max_uid = reply[i].id;
+          last_time = reply[i].created_at;
         }
         console.log("twt: " + (count + currCount));
         if (reply.length != 0)
         {
-          getStarCount_help(req, callback, count+currCount, max_uid, reply_fn, twit);
+          agg_arr.push({time:last_time, stars: (count+currCount)});
+          getStarCount_help(req, callback, count+currCount, max_uid, reply_fn, twit, agg_arr);
         }
         else
         {
           console.log('done2!!! ' + (count+currCount));
-          callback(null, (count+currCount));
+          agg_arr.push({time:last_time, stars: (count+currCount)});
+          callback(null, agg_arr);
         }
       });
   }
   else
   {
     console.log('done!' + currCount);
-    callback(null, currCount);
+    callback(null, agg_arr);
     // twit.get('statuses/user_timeline', {user_id: req.user.twitter, trim_user: true, max_id: max_uid, count: 200, include_rts: false},
     //   function(err, reply){
     //     if (err) throw err;
@@ -267,6 +282,22 @@ app.get('/main', function(req, res, next){
     posts: 0
   });
 });
+
+app.get('/getHistory/:email', function(req, res, next){
+  console.log('getting: ' + req.params.email);
+  Data.findOne({email:req.params.email}, function(err, doc){
+    if (err) throw err;
+    if (doc)
+    {
+      res.render('history',{
+        fb_history: JSON.stringify(doc.fbHistory),
+        tw_history: JSON.stringify(doc.twHistory)
+      });
+      // res.json(doc.fbHistory);
+      // res.end();
+    }
+  });
+}); 
 
 app.get('/getByEmail/:email', function(req, res, next){
   console.log('getting: ' + req.params.email);
@@ -351,16 +382,26 @@ app.get('/calc', function(req, res, next){
       });
     }
     }, function(err, results){
-    total = results.getLikes + results.getTWStars + results.getGHStars + results.getInstLikes + results.getRedditKarma;
+    var length_likes = results.getLikes.length;
+    var last_likes = results.getLikes[length_likes-1].likes; 
+
+    var length_stars = results.getTWStars.length;
+    var last_stars = results.getTWStars[length_stars-1].stars;
+
+    console.log('last_stars: ' + last_stars);
+    console.log('last_likes: ' + last_likes); 
+    total = last_likes + last_stars + results.getGHStars + results.getInstLikes + results.getRedditKarma;
     Data.findOne({id:req.user.facebook}, function(err, doc){
       if (err) throw err;
       graph.get(req.user.facebook + '?fields=id,name,email', function(err, me) {
-        console.log("ME: " + JSON.stringify(me));
+        // console.log("ME: " + JSON.stringify(me));
         if (doc)
         {
           doc.email = me.email;
-          doc.fbText = results.getLikes;
-          doc.twText = results.getTWStars; 
+          doc.fbText = last_likes;
+          doc.fbHistory = results.getLikes;
+          doc.twText = last_stars; 
+          doc.twHistory = results.getTWStars;
           doc.ghText = results.getGHStars; 
           doc.instText = results.getInstLikes;
           doc.redditText = results.getRedditKarma;
@@ -369,7 +410,7 @@ app.get('/calc', function(req, res, next){
           
 
           // Data.update({id:req.user.facebook},{
-          //   fbText: results.getLikes, 
+          //   fbText: last_likes, 
           //   twText: results.getTWStars, 
           //   ghText: results.getGHStars, 
           //   totalText: total
@@ -381,8 +422,10 @@ app.get('/calc', function(req, res, next){
           Data.create({
             id: req.user.facebook,
             email: me.email,
-            fbText: results.getLikes,
-            twText: results.getTWStars,
+            fbText: last_likes,
+            fbHistory: results.getLikes,
+            twText: last_stars,
+            twHistory: results.getTWStars,
             ghText: results.getGHStars,
             instText: results.getInstLikes,
             redditText: results.getRedditKarma,
@@ -397,12 +440,12 @@ app.get('/calc', function(req, res, next){
     //   if (err) throw err;
     //   if (doc)
     //   {
-    //     doc.update({$set: {fbText: results.getLikes, twText: results.getTWStars, ghText: results.getGHStars}});
+    //     doc.update({$set: {fbText: last_likes, twText: results.getTWStars, ghText: results.getGHStars}});
     //   }
     // });
     res.json({
-      fbText: results.getLikes,
-      twText: results.getTWStars,
+      fbText: last_likes,
+      twText: last_stars,
       ghText: results.getGHStars,
       instText: results.getInstLikes,
       redditText: results.getRedditKarma,
@@ -414,9 +457,10 @@ app.get('/calc', function(req, res, next){
 });
 
 getLikesMASTER = function(req, res, next, callback) {
+  var agg_arr = [];
   var token = _.find(req.user.tokens, { kind: 'facebook' });
   graph.setAccessToken(token.accessToken);
-  getLikeCount('me/posts', callback, req);
+  getLikeCount('me/posts', callback, req, agg_arr);
 };
 
 

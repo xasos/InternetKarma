@@ -96,6 +96,25 @@ block content
     br 
     .row
       .col-sm-4.col-sm-offset-4
-        if user.facebook && user.github && user.instagram
+        if user.facebook
           a.btn.btn-block.btn-primary#calculate
             p CALCULATE!
+    .row
+      .col-sm-12.text-center
+        h1#previous_values
+    script(src="js/lib/jquery-2.1.3.min.js")
+    script.
+      $.ajax({ 
+        url: '/getByEmail/#{user.email}',
+        type: 'GET'
+      }).done(function(data){
+        // alert(data);
+        var str = 'previous values: ';
+        str += ' fb: ' + data.fbText;
+        str += ' tw: ' + data.twText;
+        str += ' gh: ' + data.ghText;
+        str += ' insta: ' + data.instText;
+        str += ' reddit: ' + data.redditText;
+        str += '\ntotal: ' + data.totalText;
+        $("#previous_values").html(str);
+      });

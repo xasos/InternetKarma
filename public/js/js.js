@@ -5,7 +5,7 @@ $(document).ready(function(){
 			url: '/calc',
 			type: 'GET'
 		}).done(function(data){
-			alert(data);
+			// alert(data);
 			$("#fbText").html(data.fbText);
 			$("#twText").html(data.twText);
 			$("#ghText").html(data.ghText);
