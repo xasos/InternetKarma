@@ -38,6 +38,10 @@ exports.fakeFollowers = function(req, res) {
   res.json({followers: "451"});
 };
 
+exports.getUserInfo = function(req, res) {
+
+}
+
 /**
  * GET /api/foursquare
  * Foursquare API example.
@@ -312,9 +316,21 @@ exports.getTwitter = function(req, res, next) {
     access_token: token.accessToken,
     access_token_secret: token.tokenSecret
   });
-  T.get('statuses/user_timeline', { user_id: req.user.twitter, trim_user: true }, function(err, reply) {
+  T.get('statuses/user_timeline', { user_id: req.user.twitter, trim_user: true, count: 200, include_rts: false }, function(err, reply) {
     if (err) return next(err);
-    console.log(reply);
+    totalCount = 0;
+    max_uid = "";
+    for (var i = 0; i < reply.length; i++) {
+      totalCount += (reply[i].favorite_count + reply[i].retweet_count);
+      max_uid = reply[i].id;
+    }
+
+    if(reply.length == 200) {
+      T.get('statuses/user_timeline', { user_id: req.user.twitter, trim_user: true, max_id: max_uid, count: 200, include_rts: false }, function(err, reply) {
+        totalCount += 
+      });
+    }
+
     res.render('api/twitter', {
       title: 'Twitter API',
       tweets: 4
