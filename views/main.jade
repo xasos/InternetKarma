@@ -1,31 +1,30 @@
 extends layout
 
 block content
-  h1 #{title}
-  p.lead find your place on the web
-  hr
+  //- h1 #{title}
+  //- p.lead find your place on the web
+  //- hr
   .row
-    .col-sm-6.col-sm-offset-3
-      h1 simple.
+    .col-sm-12.text-center
+      h1 find your place
       p authenticate with your favorite accounts to find yourself on the web.
+  br
   .row
-    .col-sm-6
-      h2 facebook
-      p #{posts}
-      p
-        a.btn.btn-default(href='#', role='button') View details »
-    .col-sm-6
-      h2 twitter
-      p
-      p
-        a.btn.btn-default(href='#', role='button') View details »
-    .col-sm-6
-      h2 reddit
-      p 
-      p
-        a.btn.btn-default(href='#', role='button') View details »
-    .col-sm-6
-      h2 Heading
-      p 
-      p
-        a.btn.btn-default(href='#', role='button') View details »
+    .col-sm-4
+      //- h2 facebook
+      //- p#num #{posts}
+      //- p
+      a.btn.btn-block.btn-facebook.btn-social(href='/auth/facebook')
+        i.fa.fa-facebook
+        | Sign in with Facebook
+    .col-sm-4
+      a.btn.btn-block.btn-twitter.btn-social(href='/auth/twitter')
+        i.fa.fa-twitter
+        | Sign in with Twitter
+    .col-sm-4
+      a.btn.btn-block.btn-github.btn-social(href='/auth/github')
+        i.fa.fa-github
+        | Sign in with GitHub    
+
+      
+      

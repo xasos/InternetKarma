@@ -2,30 +2,46 @@ extends layout
 
 block content
   h1 Internet Karma
-  p.lead find your place on the web
+  p.lead find your place on the web 
   hr
   .row
     .col-sm-6.col-sm-offset-3
       h1 simple.
       p authenticate with your favorite accounts to find yourself on the web.
-  .row
-    .col-sm-6
-      h2 facebook
-      p
-      p
-        a.btn.btn-default(href='#', role='button') View details »
-    .col-sm-6
-      h2 twitter
-      p
-      p
-        a.btn.btn-default(href='#', role='button') View details »
-    .col-sm-6
-      h2 reddit
-      p 
-      p
-        a.btn.btn-default(href='#', role='button') View details »
-    .col-sm-6
-      h2 Heading
-      p 
-      p
-        a.btn.btn-default(href='#', role='button') View details »
+  if (user)
+    .row
+      .col-sm-4
+        if user.facebook
+          .btn.btn-block.btn-facebook.btn-social
+            i.fa.fa-facebook
+            #fbText| Facebook done!
+        else
+          a.btn.btn-block.btn-facebook.btn-social(href='/auth/facebook')
+            i.fa.fa-facebook
+            #fbText| Sign in with Facebook
+      .col-sm-4
+        if user.twitter
+          .btn.btn-block.btn-twitter.btn-social
+            i.fa.fa-twitter
+            #twText| Twitter done!
+        else
+          a.btn.btn-block.btn-twitter.btn-social(href='/auth/twitter')
+            i.fa.fa-twitter
+            #twText| Sign in with Twitter
+      .col-sm-4
+        if user.github
+          .btn.btn-block.btn-github.btn-social
+            i.fa.fa-github
+            #ghText| Github done!
+        else
+          a.btn.btn-block.btn-github.btn-social(href='/auth/github')
+            i.fa.fa-github
+            #ghText| Sign in with GitHub  
+    br 
+    br 
+    br 
+    .row
+      .col-sm-4.col-sm-offset-4
+        if user.facebook && user.github 
+          a.btn.btn-block.btn-primary#calculate
+            p CALCULATE!

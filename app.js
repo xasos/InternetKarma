@@ -21,6 +21,39 @@ var passport = require('passport');
 var expressValidator = require('express-validator');
 var assets = require('connect-assets');
 
+
+var secrets = require('./config/secrets');
+var querystring = require('querystring');
+var validator = require('validator');
+var async = require('async');
+var cheerio = require('cheerio');
+var request = require('request');
+var graph = require('fbgraph');
+var LastFmNode = require('lastfm').LastFmNode;
+var tumblr = require('tumblr.js');
+var foursquare = require('node-foursquare')({ secrets: secrets.foursquare });
+var Github = require('github-api');
+var Twit = require('twit');
+var stripe = require('stripe')(secrets.stripe.secretKey);
+var twilio = require('twilio')(secrets.twilio.sid, secrets.twilio.token);
+var Linkedin = require('node-linkedin')(secrets.linkedin.clientID, secrets.linkedin.clientSecret, secrets.linkedin.callbackURL);
+var BitGo = require('bitgo');
+var clockwork = require('clockwork')({ key: secrets.clockwork.apiKey });
+var paypal = require('paypal-rest-sdk');
+var lob = require('lob')(secrets.lob.apiKey);
+var ig = require('instagram-node').instagram();
+var Y = require('yui/yql');
+var _ = require('lodash');
+var Bitcore = require('bitcore');
+var BitcoreInsight = require('bitcore-explorers').Insight;
+var Promise = require('bluebird');
+var await = require('asyncawait/await');
+var async2 = require('asyncawait/async');
+Bitcore.Networks.defaultNetwork = secrets.bitcore.bitcoinNetwork == 'testnet' ? Bitcore.Networks.testnet : Bitcore.Networks.mainnet;
+
+
+
+
 /**
  * Controllers (route handlers).
  */
@@ -39,6 +72,11 @@ var passportConf = require('./config/passport');
  * Create Express server.
  */
 var app = express();
+// var server = require('http').Server(app);
+
+// var io = require('socket.io')(server);
+
+
 
 /**
  * Connect to MongoDB.
@@ -88,6 +126,117 @@ app.use(function(req, res, next) {
   next();
 });
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 31557600000 }));
+
+
+countLikes = function(posts, callback)
+{
+  // console.log('actually called countLikes');
+  if (!posts)
+  {
+    // console.log('no posts');
+    return 0;
+  }
+  // console.log('\n\ncalled count likes');
+  // console.log('\n'+JSON.stringify(posts)+'\n');
+  var count = 0;
+  async.parallel(
+    posts.data.map(function(post){
+      return function(done2){
+        graph.get(post.id + '/likes?summary=true', function(err, likes){
+          // console.log(JSON.stringify(likes));
+          if (likes.summary)
+          {
+            // console.log(likes.summary.total_count);
+            count += likes.summary.total_count;
+          }
+          done2();
+        });
+      }}),
+    function(){
+      // console.log(count);
+      callback(count);
+    }
+  );
+}
+
+function getLikeCount(url, callback, req) {
+  // console.log("initial getLikeCount");
+  getLikeCountImpl(url, callback, 0, req);
+}
+
+function getLikeCountImpl(url, userCallback, currentLikeCount, req) {
+  console.log(currentLikeCount);
+  // app.io.in(req.user.facebook).emit(currentLikeCount);
+  // app.sendMessage(req, currentLikeCount);
+  graph.get(url, function(err, posts) 
+  {
+    // console.log('called graph.get');
+    // console.log(JSON.stringify(posts));
+    countLikes(posts, function(likeCount) {
+      // console.log('called count likes');
+      if (posts.paging == null) 
+      {
+        // console.log('no more pages');
+        userCallback(null, currentLikeCount + likeCount);
+      } 
+      else 
+      {
+        // console.log('more pages');
+        getLikeCountImpl(posts.paging.next, userCallback, currentLikeCount + likeCount);
+      }
+    });
+  });
+}
+
+
+app.get('/main', function(req, res, next){
+  // apiController.getFacebook();
+  res.render('main', {
+    title: 'find your place',
+    posts: 0
+  });
+});
+
+app.get('/calc', function(req, res, next){
+  var likes = 0;
+  var twts = 0;
+  var gh = 0;
+  async.parallel({
+    getLikes: function(done){
+      getLikesMASTER(req, res, next, done);
+    },
+    getGHStars: function(done){
+      var token = _.find(req.user.tokens, { kind: 'github' });
+      var github = new Github({ token: token.accessToken });
+      var user = github.getUser();
+      var userRepos = [];
+      var stars = 0;
+      user.repos(function(err, repos) {
+        if (err) return;
+        repos.forEach(function(entry) {
+          stars += entry.stargazers_count;
+        });
+        console.log("Github done: " + stars);
+        done(null, stars);
+      });
+    } 
+  }, function(err, results){
+    res.json({
+      fbText: results.getLikes,
+      twText: 'oh shit',
+      ghText: results.getGHStars
+    });
+    res.end();
+  });
+  // var likes = getLikesMASTER(req, res, next);
+});
+
+getLikesMASTER = function(req, res, next, callback) {
+  var token = _.find(req.user.tokens, { kind: 'facebook' });
+  graph.setAccessToken(token.accessToken);
+  getLikeCount('me/posts', callback, req);
+};
+
 
 
 /**
@@ -155,7 +304,7 @@ app.get('/auth/instagram', passport.authenticate('instagram'));
 app.get('/auth/instagram/callback', passport.authenticate('instagram', { failureRedirect: '/login' }), function(req, res) {
   res.redirect(req.session.returnTo || '/');
 });
-app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['user_posts'] }));
+app.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email', 'user_posts'] }));
 app.get('/auth/facebook/callback', passport.authenticate('facebook', { failureRedirect: '/login' }), function(req, res) {
   res.redirect(req.session.returnTo || '/');
 });
@@ -204,4 +353,25 @@ app.use(errorHandler());
 app.listen(app.get('port'), function() {
   console.log('Express server listening on port %d in %s mode', app.get('port'), app.get('env'));
 });
+
 module.exports = app;
+
+// server.listen(80);
+// module.exports = {
+//   initSocket: function(req) {
+//     if (req)
+//     {
+//       io.in('connection', function(socket){
+//         socket.join(req.user.facebook);
+//         console.log('a user connected\n' + req.user.facebook);
+//       });
+//     }
+//   },
+//   sendSocket: function(req, data){
+//     if (req)
+//     {
+//       io.in(req.user.facebook).emit(data);
+//     }
+//   },
+//   app: app
+// };

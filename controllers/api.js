@@ -27,6 +27,20 @@ var await = require('asyncawait/await');
 var async2 = require('asyncawait/async');
 Bitcore.Networks.defaultNetwork = secrets.bitcore.bitcoinNetwork == 'testnet' ? Bitcore.Networks.testnet : Bitcore.Networks.mainnet;
 
+// var app = require('../app');
+// var io = require('../app.js').io;
+// console.log(typeof app.io);
+// console.log(typeof app.initSocket);
+// console.log(typeof app.sendMessage);
+// console.log(typeof app);
+// console.log(typeof io);
+// console.log(app);
+
+// var sendMessage = require('../app.js').sendMessage;
+// var initSocket = require('../app.js').initSocket;
+// console.log(app.sendMessage);
+// console.log(app.initSocket);
+
 /**
  * GET /api
  * List of API examples.
@@ -201,13 +215,15 @@ countLikes = function(posts, callback)
   );
 }
 
-function getLikeCount(url, callback) {
+function getLikeCount(url, callback, req) {
   // console.log("initial getLikeCount");
-  getLikeCountImpl(url, callback, 0);
+  getLikeCountImpl(url, callback, 0, req);
 }
 
-function getLikeCountImpl(url, userCallback, currentLikeCount) {
-  console.log('called impl; likes: ' + currentLikeCount);
+function getLikeCountImpl(url, userCallback, currentLikeCount, req) {
+  console.log(currentLikeCount);
+  // app.io.in(req.user.facebook).emit(currentLikeCount);
+  // app.sendMessage(req, currentLikeCount);
   graph.get(url, function(err, posts) 
   {
     // console.log('called graph.get');
@@ -228,6 +244,8 @@ function getLikeCountImpl(url, userCallback, currentLikeCount) {
   });
 }
 
+var socketArr = {};
+
 /**
  * GET /api/facebook
  * Facebook API example.
@@ -236,10 +254,20 @@ exports.getFacebook = function(req, res, next) {
   var token = _.find(req.user.tokens, { kind: 'facebook' });
   graph.setAccessToken(token.accessToken);
   var likes = 0;
+  
+  // io.on('connection', function(socket){
+  //   socketArr[req.user.facebook] = socket;
+  // });
+
+  // app.initSocket(req);
+  // app.io.in('connection', function(socket){
+  //   socket.join(req.user.facebook);
+  //   console.log('a user connected\n' + req.user.facebook);
+  // });
   async.parallel({
     getMe: function(done) {
-      graph.get(req.user.facebook, function(err, me) {
-        // console.log("ME: " + JSON.stringify(me));
+      graph.get(req.user.facebook + '?fields=id,name,email', function(err, me) {
+        console.log("ME: " + JSON.stringify(me));
         done(err, me); 
       });
     },
@@ -249,13 +277,13 @@ exports.getFacebook = function(req, res, next) {
         done(err, friends.data);
       });
     },
-    getPosts: function(done) {
-      // console.log('getting posts');
+    // getPosts: function(done) {
+    //   // console.log('getting posts');
 
-      getLikeCount('me/posts', function(likeCount) {
-        // console.log("COUNT: " + likeCount);
-        done(null, likeCount);
-      });
+    //   getLikeCount('me/posts', function(likeCount) {
+    //     // console.log("COUNT: " + likeCount);
+    //     done(null, likeCount);
+    //   }, req);
 
 
       // var count_likes = async2 (function (url){
@@ -303,7 +331,7 @@ exports.getFacebook = function(req, res, next) {
       // });
 
 
-    },
+    // },
     // getLikes: function(done){
     //   var count = 0;
     //   for posts.data.forEach(function(post){
@@ -321,9 +349,10 @@ exports.getFacebook = function(req, res, next) {
   },
   function(err, results) {
     if (err) return next(err); 
-    res.render('main', {
-      title: 'find your place',
-      posts: results.getPosts
+    res.render('api/facebook',{
+      title: "Find your place on the web.",
+      me: results.getMe,
+      friends: results.getMyFriends
     });
   });
 };

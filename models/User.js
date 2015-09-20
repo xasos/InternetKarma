@@ -23,7 +23,10 @@ var userSchema = new mongoose.Schema({
   },
 
   resetPasswordToken: String,
-  resetPasswordExpires: Date
+  resetPasswordExpires: Date,
+  facebookLikes: Number,
+  twitterStars: Number,
+  githubStars: Number
 });
 
 /**
