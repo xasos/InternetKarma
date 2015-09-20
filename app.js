@@ -329,43 +329,56 @@ app.get('/calc', function(req, res, next){
       // done(null, 1000);
     },
     getGHStars: function(done){
-      var token = _.find(req.user.tokens, { kind: 'github' });
-      var github = new Github({ token: token.accessToken });
-      var user = github.getUser();
-      var userRepos = [];
-      var stars = 0;
-      user.repos(function(err, repos) {
-        if (err) return;
-        repos.forEach(function(entry) {
-          stars += entry.stargazers_count;
+      if (!req.user.github) { done(null, 0); }
+      else 
+      {
+        var token = _.find(req.user.tokens, { kind: 'github' });
+        var github = new Github({ token: token.accessToken });
+        var user = github.getUser();
+        var userRepos = [];
+        var stars = 0;
+        user.repos(function(err, repos) {
+          if (err) return;
+          repos.forEach(function(entry) {
+            stars += entry.stargazers_count;
+          });
+          console.log("Github done: " + stars);
+          done(null, stars);
         });
-        console.log("Github done: " + stars);
-        done(null, stars);
-      });
+      }
     },
     getTWStars: function(done){
-      getStarCount(req, done);
+      if (!req.user.twitter) { 
+        var arr = [];
+        arr.push({time:'',stars:0});
+        done(null, arr); 
+      }
+      else {getStarCount(req, done);}
       // done(null, 2000);
     },
     getInstLikes: function(done){
-      var token = _.find(req.user.tokens, { kind: 'instagram' });
-      var count = 0;
-      ig.use({ client_id: secrets.instagram.clientID, client_secret: secrets.instagram.clientSecret });
-      ig.use({ access_token: token.accessToken });
-      async.parallel({
-        myRecentMedia: function(done) {
-          ig.user_self_media_recent(function(err, medias, content, limit) {
-            for (var i = 0; i < medias.length; i++) {
-              count += medias[i].likes.count;
-            }
-            done(err, count);
-          });
-        }
-      }, function(err, results) {
-        if (err) return next(err);
-        console.log("Inst: " + results.myRecentMedia);
-        done(err, results.myRecentMedia);
-      });
+      if (!req.user.instagram) { done(null, 0); }
+      else 
+      {
+        var token = _.find(req.user.tokens, { kind: 'instagram' });
+        var count = 0;
+        ig.use({ client_id: secrets.instagram.clientID, client_secret: secrets.instagram.clientSecret });
+        ig.use({ access_token: token.accessToken });
+        async.parallel({
+          myRecentMedia: function(done) {
+            ig.user_self_media_recent(function(err, medias, content, limit) {
+              for (var i = 0; i < medias.length; i++) {
+                count += medias[i].likes.count;
+              }
+              done(err, count);
+            });
+          }
+        }, function(err, results) {
+          if (err) return next(err);
+          console.log("Inst: " + results.myRecentMedia);
+          done(err, results.myRecentMedia);
+        });
+      }
     },
     getRedditKarma: function(done){
       console.log('reddit user: ' + req.user.reddit);
@@ -387,7 +400,14 @@ app.get('/calc', function(req, res, next){
     var last_likes = results.getLikes[length_likes-1].likes; 
 
     var length_stars = results.getTWStars.length;
-    var last_stars = results.getTWStars[length_stars-1].stars;
+    if (length_stars != 0)
+    {
+      var last_stars = results.getTWStars[length_stars-1].stars;
+    }
+    else
+    {
+      var last_stars = 0;
+    }
 
     console.log('last_stars: ' + last_stars);
     console.log('last_likes: ' + last_likes); 
