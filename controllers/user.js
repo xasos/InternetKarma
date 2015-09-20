@@ -119,11 +119,15 @@ exports.getAccount = function(req, res) {
 exports.postUpdateProfile = function(req, res, next) {
   User.findById(req.user.id, function(err, user) {
     if (err) return next(err);
+    console.log(JSON.stringify(req.body));
+    user.reddit = req.body.reddit || '';
     user.email = req.body.email || '';
     user.profile.name = req.body.name || '';
     user.profile.gender = req.body.gender || '';
     user.profile.location = req.body.location || '';
     user.profile.website = req.body.website || '';
+
+    console.log(user.reddit);
 
     user.save(function(err) {
       if (err) return next(err);

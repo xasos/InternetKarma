@@ -336,7 +336,8 @@ app.get('/calc', function(req, res, next){
       });
     },
     getRedditKarma: function(done){
-      var redditUsername = "redsn0w422";
+      console.log('reddit user: ' + req.user.reddit);
+      var redditUsername = req.user.reddit;
       var redditURL = "https://www.reddit.com/user/" + redditUsername + "/about.json";
       var score = 0;
 
