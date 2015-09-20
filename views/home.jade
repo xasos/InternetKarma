@@ -3,11 +3,12 @@ extends layout
 block content
   style.
     body  {
-    background: url("http://i.imgur.com/MRHYMOB.gif") no-repeat center center fixed;
+    background: url("http://i.imgur.com/MRHYMOB.gif") no-repeat center center fixed; 
     -webkit-background-size: cover;
     -moz-background-size: cover;
     -o-background-size: cover;
     background-size: cover;
+    box-shadow: rgba(0,0,0,.05);
     /* -webkit-filter: blur(2px) grayscale(0.8) brightness(0.8); */
     }
     #landing {
@@ -21,15 +22,18 @@ block content
     .landingText {
     font-family: 'Lato', sans-serif;
     font-weight: 400;
-    color: white;
+    color: black;
     text-align: center;
     }
     .title {
-    margin-top: 175px;
+    margin-top: 200px;
     font-size: 400%;
     }
     .slogan {
     margin-bottom: 0px;
+    }
+    #totalText {
+      color: white;
     }
 
   #landing  
@@ -50,7 +54,7 @@ block content
     br
     br
     .row
-      .col-sm-4
+      .col-sm-2.col-sm-offset-1
         if user.facebook
           .btn.btn-block.btn-facebook.btn-social
             i.fa.fa-facebook
@@ -59,7 +63,7 @@ block content
           a.btn.btn-block.btn-facebook.btn-social(href='/auth/facebook')
             i.fa.fa-facebook
             #fbText| Sign in with Facebook
-      .col-sm-4
+      .col-sm-2
         if user.twitter
           .btn.btn-block.btn-twitter.btn-social
             i.fa.fa-twitter
@@ -68,7 +72,7 @@ block content
           a.btn.btn-block.btn-twitter.btn-social(href='/auth/twitter')
             i.fa.fa-twitter
             #twText| Sign in with Twitter
-      .col-sm-4
+      .col-sm-2
         if user.github
           .btn.btn-block.btn-github.btn-social
             i.fa.fa-github
@@ -77,12 +81,9 @@ block content
           a.btn.btn-block.btn-github.btn-social(href='/auth/github')
             i.fa.fa-github
             #ghText| Sign in with GitHub 
-    br
-    .row
-      .col-sm-4
+      .col-sm-2
         //- h3#redditText Go to 'my account' to setup reddit 
         //- reddit link to my acount
-      .col-sm-4
         if user.instagram
           .btn.btn-block.btn-instagram.btn-social
             i.fa.fa-instagram
@@ -91,6 +92,10 @@ block content
           a.btn.btn-block.btn-instagram.btn-social(href='/auth/instagram')
             i.fa.fa-instagram
             #instText| Sign in with Instagram
+      .col-sm-2
+        a.btn.btn-block.btn-reddit.btn-social(href='/account')
+          i.fa.fa-reddit
+          #redditText| Reddit setup
     br 
     br 
     br 

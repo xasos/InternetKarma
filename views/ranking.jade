@@ -1,0 +1,10 @@
+extends layout
+
+block content
+  h2 Rankings
+  table(style='width:100%')
+    each val in docs
+      tr
+        td #{val.email}
+        td #{val.totalText}
+      
