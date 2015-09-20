@@ -1,0 +1,110 @@
+<html>
+  <head>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link href='https://fonts.googleapis.com/css?family=Lato:400,300,100,300italic,400italic,700,900' rel='stylesheet' type='text/css'>
+   
+    <style>
+		body  {
+			background: url("explosion.gif") no-repeat center center fixed;
+			-webkit-background-size: cover;
+			-moz-background-size: cover;
+			-o-background-size: cover;
+			background-size: cover;
+			-webkit-filter: blur(.5px) grayscale(0.8) brightness(0.8);
+		}
+
+		#landing {
+			min-height: 100%;
+			
+			margin-top:10%;
+			
+		}
+		#spacer{
+			
+			height: 30%;
+		
+		}
+		#fadeindiv{
+			
+			margin-top: 20%;
+		
+		}
+		.landingText {
+			font-family: 'Lato', sans-serif;
+			font-weight: 400;
+			color: black;
+			text-align: center;
+		}
+		.title {
+			margin-top: 0px;
+			font-size: 400%;
+		}   
+		.slogan {
+			margin-bottom: 0px;
+		}	
+    </style>
+	
+	<script type="text/javascript" src="public/js/countUp.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+	<script type="text/javascript">
+		
+		function unfade(element) {
+			var op = 0.1;  // initial opacity
+			element.style.display = 'block';
+			var timer = setInterval(function () {
+				if (op >= 1){
+					learInterval(timer);
+				}
+				element.style.opacity = op;
+				element.style.filter = 'alpha(opacity=' + op * 100 + ")";
+				op += op * 0.03;
+				//alert("here");
+			}, 10);
+		}
+		
+	</script>
+	
+  </head>
+  <body>
+	<div class="col-md-7">
+		
+	</div>
+    <div id="landing" class="col-md-4">
+		
+		  <h1 class="landingText title">Internet Karma</h1>
+		  <h2 class="landingText slogan" id="myTargetElement"><i>0</i></h2>
+		  <div id="fadeindiv">
+			<p> Internet Karma recursively countes likes, favorites, and shares from the following places: </p>
+			<p> Facebook, Twitter, Github, Instagram, and Reddit. </p>
+		  </div>
+    </div>
+	
+	<script type="text/javascript">
+	
+		var max = 1000;
+		var min = 0;
+		var time = 5;
+		
+
+		var options = {
+			useEasing : true, 
+			useGrouping : true, 
+			separator : ',', 
+			decimal : '.', 
+			prefix : '', 
+			suffix : '' 
+		};
+		var demo = new CountUp("myTargetElement", min, max, 0, time, options);
+		
+		fadeindiv.style.opacity = 0;
+		
+		demo.start();
+		
+		//if (myTargetElement == max){
+			unfade(fadeindiv);
+		//}	
+		
+	</script>
+	
+  </body>
+</html>
