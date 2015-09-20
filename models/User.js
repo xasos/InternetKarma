@@ -24,9 +24,7 @@ var userSchema = new mongoose.Schema({
 
   resetPasswordToken: String,
   resetPasswordExpires: Date,
-  fbText: Number,
-  twText: Number,
-  ghText: Number
+  reddit: String
 });
 
 /**
