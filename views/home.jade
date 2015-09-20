@@ -10,6 +10,9 @@ block content
       p authenticate with your favorite accounts to find yourself on the web.
   if (user)
     .row
+      .col-sm-12.text-center
+        h1#totalText
+    .row
       .col-sm-4
         if user.facebook
           .btn.btn-block.btn-facebook.btn-social
@@ -36,12 +39,25 @@ block content
         else
           a.btn.btn-block.btn-github.btn-social(href='/auth/github')
             i.fa.fa-github
-            #ghText| Sign in with GitHub  
+            #ghText| Sign in with GitHub 
+    br
+    .row
+      .col-sm-4
+        h3#redditText Go to 'my account' to setup reddit
+      .col-sm-4
+        if user.instagram
+          .btn.btn-block.btn-instagram.btn-social
+            i.fa.fa-instagram
+            #instText| Instagram done!
+        else
+          a.btn.btn-block.btn-instagram.btn-social(href='/auth/instagram')
+            i.fa.fa-instagram
+            #instText| Sign in with Instagram
     br 
     br 
     br 
     .row
       .col-sm-4.col-sm-offset-4
-        if user.facebook && user.github 
+        if user.facebook && user.github && user.instagram
           a.btn.btn-block.btn-primary#calculate
             p CALCULATE!

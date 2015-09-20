@@ -59,6 +59,22 @@ exports.getUserInfo = function(req, res) {
 
 }
 
+
+exports.getFBID = function(req, res) {
+  var fbURL = "http://facebook.com/" + req.params.username;
+  var fbid = "";
+
+  request.post({
+    headers: {'content-type' : 'application/x-www-form-urlencoded'},
+    url:     'http://findmyfbid.com/',
+    form:    {url: fbURL}
+  }, function(error, response, body){
+      fbid = body.match(/Redirecting to <a href="http:\/\/findmyfbid\.com\/success\/([0-9]+)/)[1];
+      res.json({fbid: fbid});
+      res.end();
+  });
+};
+
 /**
  * GET /api/foursquare
  * Foursquare API example.
@@ -521,11 +537,6 @@ exports.getTwitter = function(req, res, next) {
       max_uid = reply[i].id;
     }
 
-    if(reply.length == 200) {
-      T.get('statuses/user_timeline', { user_id: req.user.twitter, trim_user: true, max_id: max_uid, count: 200, include_rts: false }, function(err, reply) {
-        totalCount += 
-      });
-    }
 
     res.render('api/twitter', {
       title: 'Twitter API',

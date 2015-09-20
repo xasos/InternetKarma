@@ -52,6 +52,9 @@ var async2 = require('asyncawait/async');
 Bitcore.Networks.defaultNetwork = secrets.bitcore.bitcoinNetwork == 'testnet' ? Bitcore.Networks.testnet : Bitcore.Networks.mainnet;
 
 
+var User = require('./models/User');
+var Data = require('./models/Data');
+
 
 
 /**
@@ -144,10 +147,13 @@ countLikes = function(posts, callback)
       return function(done2){
         graph.get(post.id + '/likes?summary=true', function(err, likes){
           // console.log(JSON.stringify(likes));
-          if (likes.summary)
+          if (likes)
           {
-            // console.log(likes.summary.total_count);
-            count += likes.summary.total_count;
+            if (likes.summary)
+            {
+              // console.log(likes.summary.total_count);
+              count += likes.summary.total_count;
+            }
           }
           done2();
         });
@@ -165,7 +171,7 @@ function getLikeCount(url, callback, req) {
 }
 
 function getLikeCountImpl(url, userCallback, currentLikeCount, req) {
-  console.log(currentLikeCount);
+  console.log('fb: ' + currentLikeCount);
   // app.io.in(req.user.facebook).emit(currentLikeCount);
   // app.sendMessage(req, currentLikeCount);
   graph.get(url, function(err, posts) 
@@ -188,12 +194,96 @@ function getLikeCountImpl(url, userCallback, currentLikeCount, req) {
   });
 }
 
+function getStarCount(req, callback)
+{
+  var token = _.find(req.user.tokens, { kind: 'twitter'});
+  var T = new Twit({
+    consumer_key: secrets.twitter.consumerKey,
+    consumer_secret: secrets.twitter.consumerSecret,
+    access_token: token.accessToken,
+    access_token_secret: token.tokenSecret
+  });
+
+  T.get('statuses/user_timeline', { user_id: req.user.twitter, trim_user: true, count: 200, include_rts: false }, function(err, reply) {
+    if (err) throw err;
+    var count = 0;
+    var max_uid = '';
+    for (var i = 0; i < reply.length; i++) {
+      count += (reply[i].favorite_count);
+      max_uid = reply[i].id;
+    }
+    getStarCount_help(req, callback, count, reply[reply.length-1].id, reply, T);
+  });
+}
+
+function getStarCount_help(req, callback, currCount, max_uid, reply, twit)
+{
+  if (reply.length != 0)
+  {
+    twit.get('statuses/user_timeline', {user_id: req.user.twitter, trim_user: true, max_id: max_uid, count: 200, include_rts: false},
+      function(err, reply_fn){
+        if (err) throw err;
+        var max_uid = '';
+        var count = 0;
+        for (var i = 0; i < reply.length; i++) {
+          count += (reply[i].favorite_count);
+          max_uid = reply[i].id;
+        }
+        console.log("twt: " + (count + currCount));
+        if (reply.length != 0)
+        {
+          getStarCount_help(req, callback, count+currCount, max_uid, reply_fn, twit);
+        }
+        else
+        {
+          console.log('done2!!! ' + (count+currCount));
+          callback(null, (count+currCount));
+        }
+      });
+  }
+  else
+  {
+    console.log('done!' + currCount);
+    callback(null, currCount);
+    // twit.get('statuses/user_timeline', {user_id: req.user.twitter, trim_user: true, max_id: max_uid, count: 200, include_rts: false},
+    //   function(err, reply){
+    //     if (err) throw err;
+    //     var count = 0;
+    //     for (var i = 0; i < reply.length; i++) {
+    //       count += (reply[i].favorite_count);
+    //     }
+    //     console.log("current: " + (count + currCount));
+    //     callback(null, (count+currCount));
+
+    //   }); 
+  }
+}
+
 
 app.get('/main', function(req, res, next){
   // apiController.getFacebook();
   res.render('main', {
     title: 'find your place',
     posts: 0
+  });
+});
+
+app.get('/getByEmail/:email', function(req, res, next){
+  console.log('getting: ' + req.params.email);
+  Data.findOne({email:req.params.email}, function(err, doc){
+    if (err) throw err;
+    if (doc)
+    {
+      res.json({
+        fbText: doc.fbText,
+        twText: doc.twText,
+        ghText: doc.ghText,
+        instText: doc.instText,
+        redditText: doc.redditText,
+        totalText: doc.totalText
+      });
+      res.end();
+    }
   });
 });
 
@@ -204,6 +294,7 @@ app.get('/calc', function(req, res, next){
   async.parallel({
     getLikes: function(done){
       getLikesMASTER(req, res, next, done);
+      // done(null, 1000);
     },
     getGHStars: function(done){
       var token = _.find(req.user.tokens, { kind: 'github' });
@@ -219,12 +310,102 @@ app.get('/calc', function(req, res, next){
         console.log("Github done: " + stars);
         done(null, stars);
       });
-    } 
-  }, function(err, results){
+    },
+    getTWStars: function(done){
+      getStarCount(req, done);
+      // done(null, 2000);
+    },
+    getInstLikes: function(done){
+      var token = _.find(req.user.tokens, { kind: 'instagram' });
+      var count = 0;
+      ig.use({ client_id: secrets.instagram.clientID, client_secret: secrets.instagram.clientSecret });
+      ig.use({ access_token: token.accessToken });
+      async.parallel({
+        myRecentMedia: function(done) {
+          ig.user_self_media_recent(function(err, medias, content, limit) {
+            for (var i = 0; i < medias.length; i++) {
+              count += medias[i].likes.count;
+            }
+            done(err, count);
+          });
+        }
+      }, function(err, results) {
+        if (err) return next(err);
+        console.log("Inst: " + results.myRecentMedia);
+        done(err, results.myRecentMedia);
+      });
+    },
+    getRedditKarma: function(done){
+      var redditUsername = "redsn0w422";
+      var redditURL = "https://www.reddit.com/user/" + redditUsername + "/about.json";
+      var score = 0;
+
+      request(redditURL, function (error, response, body) {
+       if (!error && response.statusCode == 200) {
+         userData = JSON.parse(body);
+         score = parseFloat(userData.data.comment_karma) + parseFloat(userData.data.link_karma);
+         console.log('reddit done: ' + score);
+         done(null, score);
+       }
+      });
+    }
+    }, function(err, results){
+    total = results.getLikes + results.getTWStars + results.getGHStars + results.getInstLikes + results.getRedditKarma;
+    Data.findOne({id:req.user.facebook}, function(err, doc){
+      if (err) throw err;
+      graph.get(req.user.facebook + '?fields=id,name,email', function(err, me) {
+        console.log("ME: " + JSON.stringify(me));
+        if (doc)
+        {
+          doc.email = me.email;
+          doc.fbText = results.getLikes;
+          doc.twText = results.getTWStars; 
+          doc.ghText = results.getGHStars; 
+          doc.instText = results.getInstLikes;
+          doc.redditText = results.getRedditKarma;
+          doc.totalText = total;
+          doc.save();
+          
+
+          // Data.update({id:req.user.facebook},{
+          //   fbText: results.getLikes, 
+          //   twText: results.getTWStars, 
+          //   ghText: results.getGHStars, 
+          //   totalText: total
+          //   }, function(err){console.log(err);}
+          // );
+        }
+        else
+        {
+          Data.create({
+            id: req.user.facebook,
+            email: me.email,
+            fbText: results.getLikes,
+            twText: results.getTWStars,
+            ghText: results.getGHStars,
+            instText: results.getInstLikes,
+            redditText: results.getRedditKarma,
+            totalText: total
+          });
+        }
+      });
+    });
+    
+
+    // User.findById(req.user.id, function(err, doc){
+    //   if (err) throw err;
+    //   if (doc)
+    //   {
+    //     doc.update({$set: {fbText: results.getLikes, twText: results.getTWStars, ghText: results.getGHStars}});
+    //   }
+    // });
     res.json({
       fbText: results.getLikes,
-      twText: 'oh shit',
-      ghText: results.getGHStars
+      twText: results.getTWStars,
+      ghText: results.getGHStars,
+      instText: results.getInstLikes,
+      redditText: results.getRedditKarma,
+      totalText: total
     });
     res.end();
   });
@@ -259,6 +440,8 @@ app.post('/account/profile', passportConf.isAuthenticated, userController.postUp
 app.post('/account/password', passportConf.isAuthenticated, userController.postUpdatePassword);
 app.post('/account/delete', passportConf.isAuthenticated, userController.postDeleteAccount);
 app.get('/account/unlink/:provider', passportConf.isAuthenticated, userController.getOauthUnlink);
+
+app.get('/fbid/:username', apiController.getFBID);
 
 /**
  * API examples routes.
