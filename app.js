@@ -264,6 +264,7 @@ app.get('/account/unlink/:provider', passportConf.isAuthenticated, userControlle
  * API examples routes.
  */
 app.get('/api', apiController.getApi);
+app.get('/user/:uid', apiController.getUserInfo)
 app.get('/fakefollowers', apiController.fakeFollowers);
 app.get('/api/lastfm', apiController.getLastfm);
 app.get('/api/nyt', apiController.getNewYorkTimes);
