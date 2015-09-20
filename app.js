@@ -61,6 +61,7 @@ var Data = require('./models/Data');
  * Controllers (route handlers).
  */
 var homeController = require('./controllers/home');
+var rankingController = require('./controllers/ranking');
 var userController = require('./controllers/user');
 var apiController = require('./controllers/api');
 var contactController = require('./controllers/contact');
@@ -425,6 +426,7 @@ getLikesMASTER = function(req, res, next, callback) {
  * Primary app routes.
  */
 app.get('/', homeController.index);
+app.get('/ranking', rankingController.index)
 app.get('/login', userController.getLogin);
 app.post('/login', userController.postLogin);
 app.get('/logout', userController.logout);
