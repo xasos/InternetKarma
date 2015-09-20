@@ -1,17 +1,54 @@
 extends layout
 
 block content
-  h1 Internet Karma
-  p.lead find your place on the web 
-  hr
-  .row
-    .col-sm-6.col-sm-offset-3
-      h1 simple.
-      p authenticate with your favorite accounts to find yourself on the web.
+  style.
+    body  {
+    background: url("http://i.imgur.com/MRHYMOB.gif") no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+    /* -webkit-filter: blur(2px) grayscale(0.8) brightness(0.8); */
+    }
+    #landing {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    -moz-transform: translateX(-50%) translateY(-50%);
+    -webkit-transform: translateX(-50%) translateY(-50%);
+    transform: translateX(-50%) translateY(-50%);
+    }
+    .landingText {
+    font-family: 'Lato', sans-serif;
+    font-weight: 400;
+    color: white;
+    text-align: center;
+    }
+    .title {
+    margin-top: 175px;
+    font-size: 400%;
+    }
+    .slogan {
+    margin-bottom: 0px;
+    }
+
+  #landing  
+  h1.landingText.title Internet Karma
+  h2.landingText.slogan 
+    i Find your place on the web.
+
+  //- hr
+  //- .row
+  //-   .col-sm-6.col-sm-offset-3
+  //-     h1 simple.
+  //-     p authenticate with your favorite accounts to find yourself on the web.
   if (user)
     .row
       .col-sm-12.text-center
         h1#totalText
+    br
+    br
+    br
     .row
       .col-sm-4
         if user.facebook
@@ -43,7 +80,8 @@ block content
     br
     .row
       .col-sm-4
-        h3#redditText Go to 'my account' to setup reddit
+        //- h3#redditText Go to 'my account' to setup reddit 
+        //- reddit link to my acount
       .col-sm-4
         if user.instagram
           .btn.btn-block.btn-instagram.btn-social
